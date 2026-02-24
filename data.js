@@ -19,7 +19,7 @@ const SDR_DATA = {
     pctToGoal: 55,
     pctToEOM: 74,
     showRate: 75.9,
-    closeRate: 13.6,
+    closeRate: 18.2,
     goal: 60000,
 
     // Daily demos — only worked days, no blanks
