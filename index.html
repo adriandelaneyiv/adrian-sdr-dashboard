@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -191,7 +190,7 @@
             </div>
           </div>
           <div class="goal-stats-row">
-            <div class="goal-stat"><div class="goal-stat-val" id="c-ringRev"></div><div class="goal-stat-lbl">Rev Sourced</div></div>
+            <div class="goal-stat"><div class="goal-stat-val" id="c-ringRev"></div><div class="goal-stat-lbl">Shows MTD</div></div>
             <div class="goal-stat"><div class="goal-stat-val" style="color:var(--accent-cyan)" id="c-ringGoal"></div><div class="goal-stat-lbl">Monthly Goal</div></div>
           </div>
         </div>
@@ -349,9 +348,10 @@ function populateUI() {
   set('c-pctToEOM', fmtPct(c.pctToEOM));
   set('c-chartTitle', `Daily Demos Booked — ${c.month}`);
   set('c-badge', c.month.split(' ')[0].toUpperCase());
-  set('c-ringPct', fmtPct(c.pctToGoal));
-  set('c-ringRev', fmt$(c.revSourced));
-  set('c-ringGoal', fmt$(c.goal));
+  const showPct = Math.round(c.demosShown / SDR_DATA.goals.monthlyShows * 100);
+  set('c-ringPct', fmtPct(showPct));
+  set('c-ringRev', c.demosShown);
+  set('c-ringGoal', SDR_DATA.goals.monthlyShows);
   set('c-funnelBadge', c.month.split(' ')[0].toUpperCase());
   set('c-momBadge', `${p.month.split(' ')[0].toUpperCase()} vs ${c.month.split(' ')[0].toUpperCase()}`);
   set('c-revBadge', c.month.split(' ')[0].toUpperCase());
@@ -489,9 +489,10 @@ function buildCharts() {
   });
 
   // Goal ring current
+  const showPctRing = Math.round(c.demosShown / SDR_DATA.goals.monthlyShows * 100);
   new Chart(document.getElementById('goalRingCurrent'), {
     type: 'doughnut',
-    data: { datasets:[{ data:[Math.min(c.pctToGoal,100), Math.max(100-c.pctToGoal,0)],
+    data: { datasets:[{ data:[Math.min(showPctRing,100), Math.max(100-showPctRing,0)],
       backgroundColor:['rgba(0,212,255,0.8)','rgba(0,212,255,0.08)'], borderWidth:0 }] },
     options:{ cutout:'72%', plugins:{legend:{display:false},tooltip:{enabled:false}}, animation:{animateRotate:true,duration:1200} }
   });
