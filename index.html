@@ -348,10 +348,11 @@ function populateUI() {
   set('c-pctToEOM', fmtPct(c.pctToEOM));
   set('c-chartTitle', `Daily Demos Booked — ${c.month}`);
   set('c-badge', c.month.split(' ')[0].toUpperCase());
-  const showPct = Math.round(c.demosShown / SDR_DATA.goals.monthlyShows * 100);
+  const monthlyShowsGoal = (SDR_DATA.goals.monthlyShows) || 40;
+  const showPct = Math.round(c.demosShown / monthlyShowsGoal * 100);
   set('c-ringPct', fmtPct(showPct));
   set('c-ringRev', c.demosShown);
-  set('c-ringGoal', SDR_DATA.goals.monthlyShows);
+  set('c-ringGoal', monthlyShowsGoal);
   set('c-funnelBadge', c.month.split(' ')[0].toUpperCase());
   set('c-momBadge', `${p.month.split(' ')[0].toUpperCase()} vs ${c.month.split(' ')[0].toUpperCase()}`);
   set('c-revBadge', c.month.split(' ')[0].toUpperCase());
@@ -489,7 +490,7 @@ function buildCharts() {
   });
 
   // Goal ring current
-  const showPctRing = Math.round(c.demosShown / SDR_DATA.goals.monthlyShows * 100);
+  const showPctRing = Math.round(c.demosShown / ((SDR_DATA.goals.monthlyShows) || 40) * 100);
   new Chart(document.getElementById('goalRingCurrent'), {
     type: 'doughnut',
     data: { datasets:[{ data:[Math.min(showPctRing,100), Math.max(100-showPctRing,0)],
