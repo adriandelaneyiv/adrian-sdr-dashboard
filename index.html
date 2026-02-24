@@ -225,19 +225,19 @@
       <div class="kpi-card cyan"><div class="kpi-label">Demos Booked</div><div class="kpi-value" id="p-demosBooked"></div><div class="kpi-sub" id="p-month"></div></div>
       <div class="kpi-card orange"><div class="kpi-label">Demos Shown</div><div class="kpi-value" id="p-demosShown"></div><div class="kpi-sub" id="p-showRate"></div></div>
       <div class="kpi-card green"><div class="kpi-label">Total Revenue</div><div class="kpi-value" id="p-totalRev"></div><div class="kpi-sub">Final</div></div>
-      <div class="kpi-card yellow"><div class="kpi-label">Dials / Demo</div><div class="kpi-value" id="p-dialsPerDemo2"></div><div class="kpi-sub">Efficiency ratio</div></div>
-      <div class="kpi-card cyan"><div class="kpi-label">% to Goal</div><div class="kpi-value" id="p-pctToGoal"></div><div class="kpi-sub">Demos goal</div></div>
-      <div class="kpi-card purple"><div class="kpi-label">Dials/Demo</div><div class="kpi-value" id="p-dialsPerDemo"></div><div class="kpi-sub">Efficiency ratio</div></div>
+      <div class="kpi-card yellow"><div class="kpi-label">Personal Rev</div><div class="kpi-value" id="p-personalRev"></div><div class="kpi-sub" id="p-closeRate"></div></div>
+      <div class="kpi-card cyan"><div class="kpi-label">% to Goal</div><div class="kpi-value" id="p-pctToGoal"></div><div class="kpi-sub">Shows goal</div></div>
+      <div class="kpi-card purple"><div class="kpi-label">Dials / Demo</div><div class="kpi-value" id="p-dialsPerDemo"></div><div class="kpi-sub">Efficiency ratio</div></div>
     </div>
 
     <div class="section-label" id="p-sectionLabel"></div>
     <div class="main-grid">
       <div class="card card-scan">
         <div class="card-header"><span class="card-title" id="p-chartTitle"></span><span class="card-badge">FULL MONTH</span></div>
-        <canvas id="prevDailyChart" height="120"></canvas>
+        <div style="position:relative;width:100%;height:150px"><canvas id="prevDailyChart"></canvas></div>
       </div>
       <div class="card">
-        <div class="card-header"><span class="card-title">Revenue Goal</span><span class="card-badge" id="p-badge"></span></div>
+        <div class="card-header"><span class="card-title">Goal Progress</span><span class="card-badge" id="p-badge"></span></div>
         <div class="goal-ring-container">
           <div class="goal-ring">
             <canvas id="goalRingPrev" width="160" height="160"></canvas>
@@ -247,7 +247,7 @@
             </div>
           </div>
           <div class="goal-stats-row">
-            <div class="goal-stat"><div class="goal-stat-val" style="color:var(--accent-green)" id="p-ringRev"></div><div class="goal-stat-lbl">Actual Rev</div></div>
+            <div class="goal-stat"><div class="goal-stat-val" style="color:var(--accent-green)" id="p-ringRev"></div><div class="goal-stat-lbl">Shows</div></div>
             <div class="goal-stat"><div class="goal-stat-val" style="color:var(--accent-cyan)" id="p-ringGoal"></div><div class="goal-stat-lbl">Monthly Goal</div></div>
           </div>
         </div>
@@ -375,8 +375,9 @@ function populateUI() {
   set('p-demosShown', p.demosShown);
   set('p-showRate', `${p.showRate}% show rate`);
   set('p-totalRev', fmt$(p.totalRev));
-  set('p-dialsPerDemo2', p.dialsPerDemo);
-  set('p-pctToGoal', `${p.pctToGoal}%`);
+  set('p-personalRev', fmt$(p.personalRev || 0));
+  set('p-closeRate', `▲ ${p.closeRate}% close`);
+  set('p-pctToGoal', `${Math.round(p.demosShown / ((SDR_DATA.goals.monthlyShows)||40) * 100)}%`);
   set('p-dialsPerDemo', p.dialsPerDemo);
   set('p-sectionLabel', `${p.month} Overview`);
   set('p-chartTitle', `Daily Activity — ${p.month}`);
@@ -385,10 +386,10 @@ function populateUI() {
   set('p-badge3', p.month.split(' ')[0].toUpperCase());
   set('p-badge4', p.month.split(' ')[0].toUpperCase());
   set('p-funnelBadge', p.month.split(' ')[0].toUpperCase());
-  const prevPctToGoal = Math.round(p.totalRev / p.goal * 100);
-  set('p-ringPct', `${prevPctToGoal}%`);
-  set('p-ringRev', fmt$(p.totalRev));
-  set('p-ringGoal', fmt$(p.goal));
+  const prevShowPct = Math.round(p.demosShown / ((SDR_DATA.goals.monthlyShows)||40) * 100);
+  set('p-ringPct', `${prevShowPct}%`);
+  set('p-ringRev', p.demosShown);
+  set('p-ringGoal', (SDR_DATA.goals.monthlyShows)||40);
 
   // PREV FUNNEL
   document.getElementById('p-funnel').innerHTML = buildFunnel([
@@ -499,7 +500,7 @@ function buildCharts() {
   });
 
   // Goal ring prev
-  const prevPct = Math.min(Math.round(p.totalRev/p.goal*100),100);
+  const prevPct = Math.min(Math.round(p.demosShown / ((SDR_DATA.goals.monthlyShows)||40) * 100), 100);
   new Chart(document.getElementById('goalRingPrev'), {
     type: 'doughnut',
     data: { datasets:[{ data:[prevPct, 100-prevPct],
