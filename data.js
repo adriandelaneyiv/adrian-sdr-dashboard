@@ -36,6 +36,7 @@ const SDR_DATA = {
     demosBooked: 51,
     demosShown: 37,
     totalRev: 88600,
+    personalRev: 9500,
     callsMade: 612,
     aveCalls: 38.25,
     dialsPerDemo: 12,
