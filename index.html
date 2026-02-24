@@ -164,7 +164,7 @@
     <div class="kpi-grid">
       <div class="kpi-card cyan"><div class="kpi-label">Demos Booked</div><div class="kpi-value" id="c-demosBooked"></div><div class="kpi-sub" id="c-demosGoal"></div></div>
       <div class="kpi-card orange"><div class="kpi-label">Demos Shown</div><div class="kpi-value" id="c-demosShown"></div><div class="kpi-sub" id="c-showRate"></div></div>
-      <div class="kpi-card green"><div class="kpi-label">Rev Sourced</div><div class="kpi-value" id="c-revSourced"></div><div class="kpi-sub" id="c-outboundRev"></div></div>
+      <div class="kpi-card green"><div class="kpi-label">Outbound Rev</div><div class="kpi-value" id="c-outboundRev"></div><div class="kpi-sub" id="c-revSourced"></div></div>
       <div class="kpi-card yellow"><div class="kpi-label">Personal Rev</div><div class="kpi-value" id="c-personalRev"></div><div class="kpi-sub" id="c-closeRate"></div></div>
       <div class="kpi-card cyan"><div class="kpi-label">% to Goal</div><div class="kpi-value" id="c-pctToGoal"></div><div class="kpi-sub" id="c-goalAmt"></div></div>
       <div class="kpi-card purple"><div class="kpi-label">% to EOM</div><div class="kpi-value" id="c-pctToEOM"></div><div class="kpi-sub">Time elapsed</div></div>
@@ -172,9 +172,9 @@
 
     <div class="section-label">Performance Overview</div>
     <div class="main-grid">
-      <div class="card card-scan" style="max-height:220px;overflow:hidden">
+      <div class="card card-scan">
         <div class="card-header"><span class="card-title" id="c-chartTitle"></span><span class="card-badge">MTD</span></div>
-        <div style="height:140px;position:relative">
+        <div style="position:relative;width:100%;height:150px">
           <canvas id="currentDailyChart"></canvas>
         </div>
       </div>
@@ -204,16 +204,16 @@
     <div class="bottom-grid">
       <div class="card">
         <div class="card-header"><span class="card-title">Month-over-Month</span><span class="card-badge" id="c-momBadge"></span></div>
-        <canvas id="momChart" height="200"></canvas>
+        <div style="position:relative;width:100%;height:180px"><canvas id="momChart"></canvas></div>
       </div>
       <div class="card">
         <div class="card-header"><span class="card-title">Revenue Breakdown</span><span class="card-badge" id="c-revBadge"></span></div>
-        <canvas id="revDonut" height="180"></canvas>
+        <div style="position:relative;width:100%;height:160px"><canvas id="revDonut"></canvas></div>
         <div style="margin-top:12px;display:grid;grid-template-columns:1fr 1fr;gap:8px" id="c-revLegend"></div>
       </div>
       <div class="card">
         <div class="card-header"><span class="card-title">Key Rates</span><span class="card-badge" id="c-ratesBadge"></span></div>
-        <canvas id="ratesChart" height="200"></canvas>
+        <div style="position:relative;width:100%;height:180px"><canvas id="ratesChart"></canvas></div>
       </div>
     </div>
   </div>
@@ -261,15 +261,15 @@
     <div class="bottom-grid">
       <div class="card">
         <div class="card-header"><span class="card-title">Daily Calls vs Demos</span><span class="card-badge" id="p-badge2"></span></div>
-        <canvas id="prevCallsChart" height="200"></canvas>
+        <div style="position:relative;width:100%;height:180px"><canvas id="prevCallsChart"></canvas></div>
       </div>
       <div class="card">
         <div class="card-header"><span class="card-title">Weekly Demos Booked</span><span class="card-badge" id="p-badge3"></span></div>
-        <canvas id="prevWeeklyChart" height="200"></canvas>
+        <div style="position:relative;width:100%;height:180px"><canvas id="prevWeeklyChart"></canvas></div>
       </div>
       <div class="card">
         <div class="card-header"><span class="card-title">Performance Rates</span><span class="card-badge" id="p-badge4"></span></div>
-        <canvas id="prevRatesChart" height="200"></canvas>
+        <div style="position:relative;width:100%;height:180px"><canvas id="prevRatesChart"></canvas></div>
       </div>
     </div>
   </div>
@@ -289,7 +289,7 @@
     <div class="main-grid" style="grid-template-columns: 2fr 1fr">
       <div class="card card-scan">
         <div class="card-header"><span class="card-title">Monthly Revenue Trend</span><span class="card-badge">ALL TIME</span></div>
-        <canvas id="allTimeChart" height="220"></canvas>
+        <div style="position:relative;width:100%;height:200px"><canvas id="allTimeChart"></canvas></div>
       </div>
       <div class="card">
         <div class="card-header"><span class="card-title">YOY Projections</span><span class="card-badge">2026</span></div>
@@ -303,9 +303,9 @@
 
     <div class="section-label" style="margin-top:16px">Comparative Analysis</div>
     <div class="bottom-grid">
-      <div class="card"><div class="card-header"><span class="card-title">Demos Set Trend</span></div><canvas id="demosTrendChart" height="200"></canvas></div>
-      <div class="card"><div class="card-header"><span class="card-title">Show Rate Trend</span></div><canvas id="showRateTrend" height="200"></canvas></div>
-      <div class="card"><div class="card-header"><span class="card-title">Pace to Annual Goal</span></div><canvas id="annualGoalChart" height="200"></canvas></div>
+      <div class="card"><div class="card-header"><span class="card-title">Demos Set Trend</span></div><div style="position:relative;width:100%;height:180px"><canvas id="demosTrendChart"></canvas></div></div>
+      <div class="card"><div class="card-header"><span class="card-title">Show Rate Trend</span></div><div style="position:relative;width:100%;height:180px"><canvas id="showRateTrend"></canvas></div></div>
+      <div class="card"><div class="card-header"><span class="card-title">Pace to Annual Goal</span></div><div style="position:relative;width:100%;height:180px"><canvas id="annualGoalChart"></canvas></div></div>
     </div>
   </div>
 
@@ -338,8 +338,8 @@ function populateUI() {
   set('c-demosGoal', `Goal: ${SDR_DATA.goals.monthlyDemos}`);
   set('c-demosShown', c.demosShown);
   set('c-showRate', `▲ Show Rate ${c.showRate}%`);
-  set('c-revSourced', fmt$(c.revSourced));
-  set('c-outboundRev', `Outbound: ${fmt$(c.outboundRev)}`);
+  set('c-outboundRev', fmt$(c.outboundRev));
+  set('c-revSourced', `Sourced: ${fmt$(c.revSourced)}`);
   set('c-personalRev', fmt$(c.personalRev));
   set('c-closeRate', `▲ ${c.closeRate}% close`);
   set('c-pctToGoal', fmtPct(c.pctToGoal));
@@ -475,7 +475,9 @@ function buildCharts() {
         borderColor: c.daily.demos.map(v => v>=4?GREEN:CYAN),
         borderWidth: 1, borderRadius: 3 }]
     },
-    options: { responsive:true, maintainAspectRatio:false,
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
       plugins:{ legend:{display:false}, tooltip:{backgroundColor:'#0a1520',borderColor:CYAN,borderWidth:1,callbacks:{label:ctx=>`Demos: ${ctx.raw}`}} },
       scales:{
         x:{grid:{display:false},ticks:{font:{size:9},maxRotation:0}},
