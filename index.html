@@ -1,1 +1,1695 @@
-adrian_sdr_dashboard.html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Adrian | SDR Performance Dashboard</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Share+Tech+Mono&family=Rajdhani:wght@300;400;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg-primary: #050a0f;
+    --bg-card: #080f18;
+    --bg-card2: #0a1520;
+    --accent-cyan: #00d4ff;
+    --accent-orange: #ff6b1a;
+    --accent-green: #00ff88;
+    --accent-yellow: #ffd600;
+    --accent-purple: #a855f7;
+    --text-primary: #e8f4fd;
+    --text-muted: #4a7a9b;
+    --border: rgba(0,212,255,0.15);
+    --glow-cyan: 0 0 20px rgba(0,212,255,0.4);
+    --glow-orange: 0 0 20px rgba(255,107,26,0.4);
+    --glow-green: 0 0 20px rgba(0,255,136,0.4);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    font-family: 'Rajdhani', sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* Animated grid background */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(0,212,255,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,212,255,0.03) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  body::after {
+    content: '';
+    position: fixed;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: radial-gradient(ellipse at 20% 20%, rgba(0,212,255,0.04) 0%, transparent 50%),
+                radial-gradient(ellipse at 80% 80%, rgba(255,107,26,0.04) 0%, transparent 50%);
+    pointer-events: none;
+    z-index: 0;
+    animation: bgPulse 8s ease-in-out infinite alternate;
+  }
+
+  @keyframes bgPulse {
+    0% { opacity: 0.5; }
+    100% { opacity: 1; }
+  }
+
+  .dashboard {
+    position: relative;
+    z-index: 1;
+    max-width: 1600px;
+    margin: 0 auto;
+    padding: 24px;
+  }
+
+  /* HEADER */
+  .header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 32px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .header-left {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .header-subtitle {
+    font-family: 'Share Tech Mono', monospace;
+    color: var(--accent-cyan);
+    font-size: 11px;
+    letter-spacing: 4px;
+    text-transform: uppercase;
+    margin-bottom: 6px;
+  }
+
+  .header-title {
+    font-family: 'Orbitron', monospace;
+    font-size: 28px;
+    font-weight: 900;
+    letter-spacing: 2px;
+    background: linear-gradient(135deg, #fff 30%, var(--accent-cyan));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .header-right {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+  }
+
+  .live-badge {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(0,255,136,0.08);
+    border: 1px solid rgba(0,255,136,0.3);
+    border-radius: 20px;
+    padding: 6px 16px;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 11px;
+    color: var(--accent-green);
+    letter-spacing: 2px;
+  }
+
+  .live-dot {
+    width: 6px;
+    height: 6px;
+    background: var(--accent-green);
+    border-radius: 50%;
+    box-shadow: var(--glow-green);
+    animation: pulse 2s infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.5; transform: scale(1.3); }
+  }
+
+  .current-date {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 12px;
+    color: var(--text-muted);
+    letter-spacing: 1px;
+  }
+
+  /* MONTH TABS */
+  .month-tabs {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 28px;
+  }
+
+  .tab {
+    padding: 8px 24px;
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--text-muted);
+    font-family: 'Orbitron', monospace;
+    font-size: 11px;
+    letter-spacing: 2px;
+    cursor: pointer;
+    transition: all 0.3s;
+    clip-path: polygon(8px 0%, 100% 0%, calc(100% - 8px) 100%, 0% 100%);
+  }
+
+  .tab:hover {
+    border-color: var(--accent-cyan);
+    color: var(--accent-cyan);
+  }
+
+  .tab.active {
+    background: rgba(0,212,255,0.1);
+    border-color: var(--accent-cyan);
+    color: var(--accent-cyan);
+    box-shadow: var(--glow-cyan);
+  }
+
+  /* KPI ROW */
+  .kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 12px;
+    margin-bottom: 24px;
+  }
+
+  .kpi-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    padding: 18px 16px;
+    position: relative;
+    overflow: hidden;
+    clip-path: polygon(0 0, calc(100% - 10px) 0, 100% 10px, 100% 100%, 0 100%);
+    transition: all 0.3s;
+  }
+
+  .kpi-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0;
+    width: 3px;
+    height: 100%;
+  }
+
+  .kpi-card.cyan::before { background: var(--accent-cyan); box-shadow: var(--glow-cyan); }
+  .kpi-card.orange::before { background: var(--accent-orange); box-shadow: var(--glow-orange); }
+  .kpi-card.green::before { background: var(--accent-green); box-shadow: var(--glow-green); }
+  .kpi-card.yellow::before { background: var(--accent-yellow); }
+  .kpi-card.purple::before { background: var(--accent-purple); }
+
+  .kpi-card:hover {
+    transform: translateY(-2px);
+    border-color: rgba(0,212,255,0.3);
+  }
+
+  .kpi-label {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 2px;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+
+  .kpi-value {
+    font-family: 'Orbitron', monospace;
+    font-size: 22px;
+    font-weight: 700;
+    line-height: 1;
+    margin-bottom: 6px;
+  }
+
+  .kpi-card.cyan .kpi-value { color: var(--accent-cyan); text-shadow: var(--glow-cyan); }
+  .kpi-card.orange .kpi-value { color: var(--accent-orange); text-shadow: var(--glow-orange); }
+  .kpi-card.green .kpi-value { color: var(--accent-green); text-shadow: var(--glow-green); }
+  .kpi-card.yellow .kpi-value { color: var(--accent-yellow); }
+  .kpi-card.purple .kpi-value { color: var(--accent-purple); }
+
+  .kpi-sub {
+    font-size: 11px;
+    color: var(--text-muted);
+    font-family: 'Share Tech Mono', monospace;
+  }
+
+  .kpi-delta {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    font-size: 10px;
+    font-family: 'Share Tech Mono', monospace;
+  }
+
+  .kpi-delta.up { color: var(--accent-green); }
+  .kpi-delta.down { color: var(--accent-orange); }
+
+  /* MAIN GRID */
+  .main-grid {
+    display: grid;
+    grid-template-columns: 2fr 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 16px;
+  }
+
+  .bottom-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 16px;
+  }
+
+  /* CARDS */
+  .card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    padding: 20px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .card::after {
+    content: '';
+    position: absolute;
+    top: 0; right: 0;
+    width: 40px; height: 40px;
+    background: linear-gradient(225deg, rgba(0,212,255,0.08), transparent);
+    clip-path: polygon(100% 0, 0 0, 100% 100%);
+  }
+
+  .card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 16px;
+  }
+
+  .card-title {
+    font-family: 'Orbitron', monospace;
+    font-size: 11px;
+    letter-spacing: 3px;
+    color: var(--text-muted);
+    text-transform: uppercase;
+  }
+
+  .card-badge {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 9px;
+    padding: 3px 8px;
+    border: 1px solid var(--border);
+    letter-spacing: 2px;
+    color: var(--text-muted);
+  }
+
+  /* GOAL PROGRESS */
+  .goal-ring-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 10px 0;
+  }
+
+  .goal-ring {
+    position: relative;
+    width: 160px;
+    height: 160px;
+    margin-bottom: 16px;
+  }
+
+  .goal-ring canvas { position: absolute; top: 0; left: 0; }
+
+  .goal-ring-center {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .goal-ring-pct {
+    font-family: 'Orbitron', monospace;
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--accent-cyan);
+    text-shadow: var(--glow-cyan);
+    line-height: 1;
+  }
+
+  .goal-ring-label {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 9px;
+    color: var(--text-muted);
+    letter-spacing: 2px;
+    margin-top: 4px;
+  }
+
+  .goal-stats-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    width: 100%;
+  }
+
+  .goal-stat {
+    text-align: center;
+  }
+
+  .goal-stat-val {
+    font-family: 'Orbitron', monospace;
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--accent-orange);
+  }
+
+  .goal-stat-lbl {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 9px;
+    color: var(--text-muted);
+    letter-spacing: 1px;
+  }
+
+  /* PIPELINE TABLE */
+  .pipeline-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 8px 0;
+    border-bottom: 1px solid rgba(0,212,255,0.06);
+  }
+
+  .pipeline-row:last-child { border-bottom: none; }
+
+  .pipeline-rank {
+    font-family: 'Orbitron', monospace;
+    font-size: 10px;
+    color: var(--text-muted);
+    width: 20px;
+    text-align: center;
+  }
+
+  .pipeline-name {
+    flex: 1;
+    font-size: 12px;
+    color: var(--text-primary);
+    font-family: 'Share Tech Mono', monospace;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .pipeline-bar-wrap {
+    width: 80px;
+    height: 4px;
+    background: rgba(0,212,255,0.1);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+
+  .pipeline-bar {
+    height: 100%;
+    border-radius: 2px;
+    background: linear-gradient(90deg, var(--accent-cyan), var(--accent-purple));
+  }
+
+  .pipeline-val {
+    font-family: 'Orbitron', monospace;
+    font-size: 11px;
+    color: var(--accent-green);
+    width: 55px;
+    text-align: right;
+  }
+
+  /* FUNNEL */
+  .funnel-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 10px;
+  }
+
+  .funnel-label {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 10px;
+    color: var(--text-muted);
+    width: 80px;
+    letter-spacing: 1px;
+  }
+
+  .funnel-bar-wrap {
+    flex: 1;
+    height: 24px;
+    background: rgba(0,212,255,0.05);
+    border: 1px solid var(--border);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .funnel-bar {
+    height: 100%;
+    position: relative;
+    display: flex;
+    align-items: center;
+    padding-left: 8px;
+    font-family: 'Orbitron', monospace;
+    font-size: 11px;
+    font-weight: 700;
+    transition: width 1s ease;
+  }
+
+  .funnel-pct {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 10px;
+    color: var(--text-muted);
+    width: 45px;
+    text-align: right;
+  }
+
+  /* MOM COMPARISON */
+  .mom-bar-group {
+    display: flex;
+    align-items: flex-end;
+    gap: 4px;
+    margin-bottom: 6px;
+  }
+
+  /* PROJECTION CARD */
+  .projection-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+
+  .proj-item {
+    background: var(--bg-card2);
+    border: 1px solid var(--border);
+    padding: 12px;
+    text-align: center;
+  }
+
+  .proj-val {
+    font-family: 'Orbitron', monospace;
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--accent-yellow);
+    margin-bottom: 4px;
+  }
+
+  .proj-label {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 9px;
+    color: var(--text-muted);
+    letter-spacing: 2px;
+  }
+
+  /* SPARKLINE ROW */
+  .sparkline-section {
+    margin-top: 6px;
+  }
+
+  canvas { border-radius: 2px; }
+
+  /* SCAN LINE EFFECT */
+  .card-scan::before {
+    content: '';
+    position: absolute;
+    top: -100%;
+    left: 0;
+    width: 100%;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, var(--accent-cyan), transparent);
+    opacity: 0.4;
+    animation: scan 4s linear infinite;
+  }
+
+  @keyframes scan {
+    0% { top: -2px; }
+    100% { top: 100%; }
+  }
+
+  /* MONTH DATA PANEL */
+  .month-panel { display: none; }
+  .month-panel.active { display: contents; }
+
+  /* Ticker strip */
+  .ticker {
+    background: rgba(0,212,255,0.05);
+    border-top: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+    padding: 8px 0;
+    overflow: hidden;
+    margin-bottom: 24px;
+  }
+
+  .ticker-inner {
+    display: flex;
+    gap: 40px;
+    animation: tickerScroll 20s linear infinite;
+    white-space: nowrap;
+  }
+
+  .ticker-item {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 11px;
+    color: var(--text-muted);
+    letter-spacing: 1px;
+  }
+
+  .ticker-item span {
+    color: var(--accent-cyan);
+    margin-left: 6px;
+  }
+
+  @keyframes tickerScroll {
+    0% { transform: translateX(0); }
+    100% { transform: translateX(-50%); }
+  }
+
+  /* Section label bar */
+  .section-label {
+    font-family: 'Orbitron', monospace;
+    font-size: 9px;
+    letter-spacing: 4px;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .section-label::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+
+  /* YOY callout */
+  .yoy-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 10px;
+  }
+
+  .yoy-item {
+    text-align: center;
+    padding: 12px 8px;
+    background: var(--bg-card2);
+    border: 1px solid var(--border);
+  }
+
+  .yoy-val {
+    font-family: 'Orbitron', monospace;
+    font-size: 16px;
+    font-weight: 700;
+    margin-bottom: 4px;
+  }
+
+  .yoy-label {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 9px;
+    color: var(--text-muted);
+    letter-spacing: 1px;
+  }
+</style>
+</head>
+<body>
+
+<div class="dashboard">
+
+  <!-- HEADER -->
+  <div class="header">
+    <div class="header-left">
+      <div class="header-subtitle">⬡ SDR PERFORMANCE SYSTEM ⬡</div>
+      <div class="header-title">ADRIAN DELANEY</div>
+    </div>
+    <div class="header-right">
+      <div class="live-badge">
+        <div class="live-dot"></div>
+        LIVE TRACKING
+      </div>
+      <div class="current-date" id="currentDate"></div>
+    </div>
+  </div>
+
+  <!-- TICKER -->
+  <div class="ticker">
+    <div class="ticker-inner" id="tickerInner"></div>
+  </div>
+
+  <!-- MONTH TABS -->
+  <div class="month-tabs">
+    <button class="tab active" onclick="switchMonth('feb')">FEB 2026</button>
+    <button class="tab" onclick="switchMonth('jan')">JAN 2026</button>
+    <button class="tab" onclick="switchMonth('alltime')">ALL TIME</button>
+  </div>
+
+  <!-- ===== FEB PANEL ===== -->
+  <div id="panel-feb" class="month-panel active">
+
+    <!-- KPI ROW -->
+    <div class="kpi-grid">
+      <div class="kpi-card cyan">
+        <div class="kpi-label">Demos Booked</div>
+        <div class="kpi-value">27</div>
+        <div class="kpi-sub">Goal: 49</div>
+      </div>
+      <div class="kpi-card orange">
+        <div class="kpi-label">Demos Shown</div>
+        <div class="kpi-value">22</div>
+        <div class="kpi-sub kpi-delta up">▲ Show Rate 81%</div>
+      </div>
+      <div class="kpi-card green">
+        <div class="kpi-label">Rev Sourced</div>
+        <div class="kpi-value">$33.5K</div>
+        <div class="kpi-sub">Outbound: $64.5K</div>
+      </div>
+      <div class="kpi-card yellow">
+        <div class="kpi-label">Personal Rev</div>
+        <div class="kpi-value">$11.5K</div>
+        <div class="kpi-sub kpi-delta up">▲ 13.6% close</div>
+      </div>
+      <div class="kpi-card cyan">
+        <div class="kpi-label">% to Goal</div>
+        <div class="kpi-value">55%</div>
+        <div class="kpi-sub">Goal: $60K</div>
+      </div>
+      <div class="kpi-card purple">
+        <div class="kpi-label">% to EOM</div>
+        <div class="kpi-value">71%</div>
+        <div class="kpi-sub">Time elapsed</div>
+      </div>
+    </div>
+
+    <!-- MAIN GRID -->
+    <div class="section-label">Performance Overview</div>
+    <div class="main-grid" style="margin-bottom:16px">
+
+      <!-- DAILY DEMOS CHART -->
+      <div class="card card-scan">
+        <div class="card-header">
+          <span class="card-title">Daily Demos Booked — Feb</span>
+          <span class="card-badge">MTD</span>
+        </div>
+        <canvas id="febDailyChart" height="180"></canvas>
+      </div>
+
+      <!-- GOAL RING -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Goal Progress</span>
+          <span class="card-badge">FEB</span>
+        </div>
+        <div class="goal-ring-container">
+          <div class="goal-ring">
+            <canvas id="goalRingFeb" width="160" height="160"></canvas>
+            <div class="goal-ring-center">
+              <div class="goal-ring-pct">55%</div>
+              <div class="goal-ring-label">TO GOAL</div>
+            </div>
+          </div>
+          <div class="goal-stats-row">
+            <div class="goal-stat">
+              <div class="goal-stat-val">$33.5K</div>
+              <div class="goal-stat-lbl">Rev Sourced</div>
+            </div>
+            <div class="goal-stat">
+              <div class="goal-stat-val" style="color:var(--accent-cyan)">$60K</div>
+              <div class="goal-stat-lbl">Monthly Goal</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- FUNNEL -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Sales Funnel</span>
+          <span class="card-badge">FEB</span>
+        </div>
+        <div style="margin-top:8px">
+          <div class="funnel-row">
+            <div class="funnel-label">DEMOS SET</div>
+            <div class="funnel-bar-wrap">
+              <div class="funnel-bar" style="width:100%; background: linear-gradient(90deg, rgba(0,212,255,0.6), rgba(0,212,255,0.3))">
+                <span style="color:var(--accent-cyan)">27</span>
+              </div>
+            </div>
+            <div class="funnel-pct">100%</div>
+          </div>
+          <div class="funnel-row">
+            <div class="funnel-label">SHOWN</div>
+            <div class="funnel-bar-wrap">
+              <div class="funnel-bar" style="width:81%; background: linear-gradient(90deg, rgba(168,85,247,0.6), rgba(168,85,247,0.3))">
+                <span style="color:var(--accent-purple)">22</span>
+              </div>
+            </div>
+            <div class="funnel-pct">81.5%</div>
+          </div>
+          <div class="funnel-row">
+            <div class="funnel-label">CLOSED</div>
+            <div class="funnel-bar-wrap">
+              <div class="funnel-bar" style="width:14%; background: linear-gradient(90deg, rgba(0,255,136,0.6), rgba(0,255,136,0.3))">
+                <span style="color:var(--accent-green)">3</span>
+              </div>
+            </div>
+            <div class="funnel-pct">13.6%</div>
+          </div>
+          <div style="margin-top:16px; padding-top:12px; border-top:1px solid var(--border)">
+            <div class="section-label" style="font-size:8px; margin-bottom:8px">Projections</div>
+            <div class="projection-grid">
+              <div class="proj-item">
+                <div class="proj-val">$47K</div>
+                <div class="proj-label">EOM Rev Est.</div>
+              </div>
+              <div class="proj-item">
+                <div class="proj-val">38</div>
+                <div class="proj-label">EOM Demos Est.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- BOTTOM GRID -->
+    <div class="section-label">Deep Metrics</div>
+    <div class="bottom-grid">
+
+      <!-- MOM COMPARISON -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Month-over-Month</span>
+          <span class="card-badge">JAN vs FEB</span>
+        </div>
+        <canvas id="momChart" height="200"></canvas>
+      </div>
+
+      <!-- REVENUE BREAKDOWN -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Revenue Breakdown</span>
+          <span class="card-badge">FEB</span>
+        </div>
+        <canvas id="revDonut" height="180"></canvas>
+        <div style="margin-top:12px; display:grid; grid-template-columns:1fr 1fr; gap:8px">
+          <div style="display:flex;align-items:center;gap:6px">
+            <div style="width:10px;height:10px;background:var(--accent-cyan);border-radius:2px"></div>
+            <span style="font-family:'Share Tech Mono';font-size:10px;color:var(--text-muted)">Rev Sourced <span style="color:var(--text-primary)">$33.5K</span></span>
+          </div>
+          <div style="display:flex;align-items:center;gap:6px">
+            <div style="width:10px;height:10px;background:var(--accent-orange);border-radius:2px"></div>
+            <span style="font-family:'Share Tech Mono';font-size:10px;color:var(--text-muted)">Personal Rev <span style="color:var(--text-primary)">$11.5K</span></span>
+          </div>
+          <div style="display:flex;align-items:center;gap:6px">
+            <div style="width:10px;height:10px;background:var(--accent-purple);border-radius:2px"></div>
+            <span style="font-family:'Share Tech Mono';font-size:10px;color:var(--text-muted)">Outbound Rev <span style="color:var(--text-primary)">$64.5K</span></span>
+          </div>
+        </div>
+      </div>
+
+      <!-- PERFORMANCE RATES -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Key Rates</span>
+          <span class="card-badge">FEB</span>
+        </div>
+        <canvas id="ratesChart" height="200"></canvas>
+      </div>
+    </div>
+
+  </div><!-- /feb panel -->
+
+  <!-- ===== JAN PANEL ===== -->
+  <div id="panel-jan" class="month-panel">
+
+    <!-- KPI ROW -->
+    <div class="kpi-grid">
+      <div class="kpi-card cyan">
+        <div class="kpi-label">Demos Booked</div>
+        <div class="kpi-value">51</div>
+        <div class="kpi-sub">Jan Total</div>
+      </div>
+      <div class="kpi-card orange">
+        <div class="kpi-label">Demos Shown</div>
+        <div class="kpi-value">37</div>
+        <div class="kpi-sub">72.5% show rate</div>
+      </div>
+      <div class="kpi-card green">
+        <div class="kpi-label">Total Revenue</div>
+        <div class="kpi-value">$88.6K</div>
+        <div class="kpi-sub">Best month</div>
+      </div>
+      <div class="kpi-card yellow">
+        <div class="kpi-label">Calls Made</div>
+        <div class="kpi-value">612</div>
+        <div class="kpi-sub">38.25/day avg</div>
+      </div>
+      <div class="kpi-card cyan">
+        <div class="kpi-label">% to Goal</div>
+        <div class="kpi-value">62%</div>
+        <div class="kpi-sub">Demos goal</div>
+      </div>
+      <div class="kpi-card purple">
+        <div class="kpi-label">Dials/Demo</div>
+        <div class="kpi-value">12</div>
+        <div class="kpi-sub">Efficiency ratio</div>
+      </div>
+    </div>
+
+    <div class="section-label">January Overview</div>
+    <div class="main-grid" style="margin-bottom:16px">
+
+      <!-- JAN DAILY CHART -->
+      <div class="card card-scan">
+        <div class="card-header">
+          <span class="card-title">Daily Activity — Jan</span>
+          <span class="card-badge">FULL MONTH</span>
+        </div>
+        <canvas id="janDailyChart" height="180"></canvas>
+      </div>
+
+      <!-- GOAL RING -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Revenue Goal</span>
+          <span class="card-badge">JAN</span>
+        </div>
+        <div class="goal-ring-container">
+          <div class="goal-ring">
+            <canvas id="goalRingJan" width="160" height="160"></canvas>
+            <div class="goal-ring-center">
+              <div class="goal-ring-pct" style="color:var(--accent-green)">147%</div>
+              <div class="goal-ring-label">TO GOAL</div>
+            </div>
+          </div>
+          <div class="goal-stats-row">
+            <div class="goal-stat">
+              <div class="goal-stat-val" style="color:var(--accent-green)">$88.6K</div>
+              <div class="goal-stat-lbl">Actual Rev</div>
+            </div>
+            <div class="goal-stat">
+              <div class="goal-stat-val" style="color:var(--accent-cyan)">$60K</div>
+              <div class="goal-stat-lbl">Monthly Goal</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- JAN FUNNEL -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Sales Funnel</span>
+          <span class="card-badge">JAN</span>
+        </div>
+        <div style="margin-top:8px">
+          <div class="funnel-row">
+            <div class="funnel-label">CALLS</div>
+            <div class="funnel-bar-wrap">
+              <div class="funnel-bar" style="width:100%; background: linear-gradient(90deg, rgba(0,212,255,0.6), rgba(0,212,255,0.3))">
+                <span style="color:var(--accent-cyan)">612</span>
+              </div>
+            </div>
+            <div class="funnel-pct">100%</div>
+          </div>
+          <div class="funnel-row">
+            <div class="funnel-label">DEMOS SET</div>
+            <div class="funnel-bar-wrap">
+              <div class="funnel-bar" style="width:8.3%; background: linear-gradient(90deg, rgba(168,85,247,0.6), rgba(168,85,247,0.3))">
+                <span style="color:var(--accent-purple)">51</span>
+              </div>
+            </div>
+            <div class="funnel-pct">8.3%</div>
+          </div>
+          <div class="funnel-row">
+            <div class="funnel-label">SHOWN</div>
+            <div class="funnel-bar-wrap">
+              <div class="funnel-bar" style="width:6%; background: linear-gradient(90deg, rgba(255,107,26,0.6), rgba(255,107,26,0.3))">
+                <span style="color:var(--accent-orange)">37</span>
+              </div>
+            </div>
+            <div class="funnel-pct">72.5%</div>
+          </div>
+          <div class="funnel-row">
+            <div class="funnel-label">CLOSED</div>
+            <div class="funnel-bar-wrap">
+              <div class="funnel-bar" style="width:1.4%; background: linear-gradient(90deg, rgba(0,255,136,0.6), rgba(0,255,136,0.3))">
+                <span style="color:var(--accent-green);font-size:9px">✓</span>
+              </div>
+            </div>
+            <div class="funnel-pct">~8%</div>
+          </div>
+          <div style="margin-top:16px; padding-top:12px; border-top:1px solid var(--border)">
+            <div class="projection-grid">
+              <div class="proj-item">
+                <div class="proj-val" style="color:var(--accent-green)">$88.6K</div>
+                <div class="proj-label">Final Revenue</div>
+              </div>
+              <div class="proj-item">
+                <div class="proj-val" style="color:var(--accent-green)">51</div>
+                <div class="proj-label">Demos Booked</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="section-label">Deep Metrics</div>
+    <div class="bottom-grid">
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Daily Calls vs Demos</span>
+          <span class="card-badge">JAN</span>
+        </div>
+        <canvas id="janCallsChart" height="200"></canvas>
+      </div>
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Weekly Demos Booked</span>
+          <span class="card-badge">JAN</span>
+        </div>
+        <canvas id="janWeeklyChart" height="200"></canvas>
+      </div>
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Performance Rates</span>
+          <span class="card-badge">JAN</span>
+        </div>
+        <canvas id="janRatesChart" height="200"></canvas>
+      </div>
+    </div>
+
+  </div><!-- /jan panel -->
+
+  <!-- ===== ALL TIME PANEL ===== -->
+  <div id="panel-alltime" class="month-panel">
+
+    <div class="kpi-grid">
+      <div class="kpi-card green">
+        <div class="kpi-label">All-Time Rev</div>
+        <div class="kpi-value">$392K</div>
+        <div class="kpi-sub">Total outbound</div>
+      </div>
+      <div class="kpi-card cyan">
+        <div class="kpi-label">Avg / Month</div>
+        <div class="kpi-value">$131K</div>
+        <div class="kpi-sub">3-month avg</div>
+      </div>
+      <div class="kpi-card orange">
+        <div class="kpi-label">Best Month</div>
+        <div class="kpi-value">$88.6K</div>
+        <div class="kpi-sub">Jan 2026</div>
+      </div>
+      <div class="kpi-card yellow">
+        <div class="kpi-label">Best Demo Month</div>
+        <div class="kpi-value">51</div>
+        <div class="kpi-sub">Jan 2026</div>
+      </div>
+      <div class="kpi-card cyan">
+        <div class="kpi-label">Current Month</div>
+        <div class="kpi-value">$33.5K</div>
+        <div class="kpi-sub">Feb (MTD)</div>
+      </div>
+      <div class="kpi-card purple">
+        <div class="kpi-label">YOY Projection</div>
+        <div class="kpi-value">$1.57M</div>
+        <div class="kpi-sub">At current pace</div>
+      </div>
+    </div>
+
+    <div class="section-label">All-Time Trend</div>
+    <div class="main-grid" style="margin-bottom:16px; grid-template-columns: 2fr 1fr">
+
+      <div class="card card-scan">
+        <div class="card-header">
+          <span class="card-title">Monthly Revenue Trend</span>
+          <span class="card-badge">ALL TIME</span>
+        </div>
+        <canvas id="allTimeChart" height="220"></canvas>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">YOY Projections</span>
+          <span class="card-badge">2026</span>
+        </div>
+        <div class="yoy-grid" style="margin-bottom:16px">
+          <div class="yoy-item">
+            <div class="yoy-val" style="color:var(--accent-green)">$1.57M</div>
+            <div class="yoy-label">Annual Rev Proj.</div>
+          </div>
+          <div class="yoy-item">
+            <div class="yoy-val" style="color:var(--accent-cyan)">$131K</div>
+            <div class="yoy-label">Avg Monthly</div>
+          </div>
+          <div class="yoy-item">
+            <div class="yoy-val" style="color:var(--accent-yellow)">612</div>
+            <div class="yoy-label">Peak Calls/Mo</div>
+          </div>
+        </div>
+        <div style="margin-top:8px">
+          <div class="section-label" style="font-size:8px; margin-bottom:10px">Month Comparison</div>
+          <div class="pipeline-row">
+            <div class="pipeline-rank">1</div>
+            <div class="pipeline-name">Jan 2026</div>
+            <div class="pipeline-bar-wrap"><div class="pipeline-bar" style="width:100%"></div></div>
+            <div class="pipeline-val">$88.6K</div>
+          </div>
+          <div class="pipeline-row">
+            <div class="pipeline-rank">2</div>
+            <div class="pipeline-name">Feb 2026 (MTD)</div>
+            <div class="pipeline-bar-wrap"><div class="pipeline-bar" style="width:38%"></div></div>
+            <div class="pipeline-val">$33.5K</div>
+          </div>
+          <div class="pipeline-row">
+            <div class="pipeline-rank">3</div>
+            <div class="pipeline-name">Dec 2025 (est.)</div>
+            <div class="pipeline-bar-wrap"><div class="pipeline-bar" style="width:75%"></div></div>
+            <div class="pipeline-val">~$66K</div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="section-label">Comparative Analysis</div>
+    <div class="bottom-grid">
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Demos Set Trend</span>
+        </div>
+        <canvas id="demosTrendChart" height="200"></canvas>
+      </div>
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Show Rate Trend</span>
+        </div>
+        <canvas id="showRateTrend" height="200"></canvas>
+      </div>
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Pace to Annual Goal</span>
+        </div>
+        <canvas id="annualGoalChart" height="200"></canvas>
+      </div>
+    </div>
+
+  </div><!-- /alltime panel -->
+
+</div><!-- /dashboard -->
+
+<script>
+// ─────────────────────────────────────────────
+// DATA
+// ─────────────────────────────────────────────
+const DATA = {
+  feb: {
+    daily: {
+      dates: ['Feb 2','Feb 3','Feb 4','Feb 5','Feb 6','Feb 9','Feb 10','Feb 11','Feb 12','Feb 13','Feb 16','Feb 17','Feb 18','Feb 19'],
+      demos: [2,2,4,0,3,5,1,2,3,4,4,2,2,1]
+    },
+    demosBooked: 27,
+    demosShown: 22,
+    revSourced: 33500,
+    personalRev: 11500,
+    outboundRev: 64500,
+    pctToGoal: 55,
+    pctToEOM: 71,
+    showRate: 81.5,
+    closeRate: 13.6,
+    goal: 60000
+  },
+  jan: {
+    daily: {
+      dates: ['Jan 5','Jan 6','Jan 7','Jan 8','Jan 9','Jan 12','Jan 13','Jan 14','Jan 15','Jan 16','Jan 19','Jan 20','Jan 21','Jan 22','Jan 23','Jan 26'],
+      calls: [2,36,64,21,10,4,62,13,14,52,58,77,83,13,36,67],
+      demos: [0,4,6,1,1,0,5,3,6,3,2,1,5,3,5,6]
+    },
+    demosBooked: 51,
+    demosShown: 37,
+    totalRev: 88600,
+    callsMade: 612,
+    aveCalls: 38.25,
+    dialsPerDemo: 12,
+    pctToGoal: 62,
+    goal: 60000
+  },
+  alltime: {
+    months: ['Dec 2025','Jan 2026','Feb 2026 (MTD)'],
+    revenue: [66000, 88600, 33500],
+    demos: [35, 51, 27]
+  }
+};
+
+// ─────────────────────────────────────────────
+// CHART DEFAULTS
+// ─────────────────────────────────────────────
+Chart.defaults.color = '#4a7a9b';
+Chart.defaults.borderColor = 'rgba(0,212,255,0.08)';
+Chart.defaults.font.family = "'Share Tech Mono', monospace";
+
+const CYAN = '#00d4ff';
+const ORANGE = '#ff6b1a';
+const GREEN = '#00ff88';
+const YELLOW = '#ffd600';
+const PURPLE = '#a855f7';
+
+function gradientFill(ctx, color, alpha1=0.4, alpha2=0.01) {
+  const grad = ctx.createLinearGradient(0, 0, 0, 300);
+  grad.addColorStop(0, color.replace(')', `,${alpha1})`).replace('rgb', 'rgba'));
+  grad.addColorStop(1, color.replace(')', `,${alpha2})`).replace('rgb', 'rgba'));
+  return grad;
+}
+
+// ─────────────────────────────────────────────
+// BUILD CHARTS
+// ─────────────────────────────────────────────
+function buildCharts() {
+  // FEB DAILY
+  new Chart(document.getElementById('febDailyChart'), {
+    type: 'bar',
+    data: {
+      labels: DATA.feb.daily.dates,
+      datasets: [{
+        label: 'Demos Booked',
+        data: DATA.feb.daily.demos,
+        backgroundColor: (ctx) => {
+          const v = ctx.raw;
+          if (v >= 4) return 'rgba(0,255,136,0.7)';
+          if (v >= 2) return 'rgba(0,212,255,0.6)';
+          if (v === 0) return 'rgba(255,107,26,0.4)';
+          return 'rgba(0,212,255,0.35)';
+        },
+        borderColor: CYAN,
+        borderWidth: 1,
+        borderRadius: 2,
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false },
+        tooltip: {
+          backgroundColor: '#0a1520',
+          borderColor: CYAN,
+          borderWidth: 1,
+          titleFont: { family: "'Orbitron', monospace", size: 10 },
+          callbacks: {
+            label: ctx => `  Demos: ${ctx.raw}`
+          }
+        }
+      },
+      scales: {
+        x: { grid: { display: false }, ticks: { font: { size: 9 }, maxRotation: 45 } },
+        y: { grid: { color: 'rgba(0,212,255,0.06)' }, ticks: { font: { size: 9 }, stepSize: 1 }, beginAtZero: true }
+      }
+    }
+  });
+
+  // GOAL RING FEB
+  new Chart(document.getElementById('goalRingFeb'), {
+    type: 'doughnut',
+    data: {
+      datasets: [{
+        data: [55, 45],
+        backgroundColor: ['rgba(0,212,255,0.8)', 'rgba(0,212,255,0.08)'],
+        borderWidth: 0,
+        hoverOffset: 4
+      }]
+    },
+    options: {
+      cutout: '72%',
+      plugins: { legend: { display: false }, tooltip: { enabled: false } },
+      animation: { animateRotate: true, duration: 1200 }
+    }
+  });
+
+  // GOAL RING JAN
+  new Chart(document.getElementById('goalRingJan'), {
+    type: 'doughnut',
+    data: {
+      datasets: [{
+        data: [100, 0],
+        backgroundColor: ['rgba(0,255,136,0.8)', 'rgba(0,255,136,0.08)'],
+        borderWidth: 0,
+      }]
+    },
+    options: {
+      cutout: '72%',
+      plugins: { legend: { display: false }, tooltip: { enabled: false } },
+    }
+  });
+
+  // MOM COMPARISON
+  new Chart(document.getElementById('momChart'), {
+    type: 'bar',
+    data: {
+      labels: ['Demos Booked', 'Demos Shown', 'Close Rate'],
+      datasets: [
+        {
+          label: 'Jan 2026',
+          data: [51, 37, 8],
+          backgroundColor: 'rgba(0,212,255,0.5)',
+          borderColor: CYAN,
+          borderWidth: 1,
+          borderRadius: 2,
+        },
+        {
+          label: 'Feb 2026',
+          data: [27, 22, 14],
+          backgroundColor: 'rgba(255,107,26,0.5)',
+          borderColor: ORANGE,
+          borderWidth: 1,
+          borderRadius: 2,
+        }
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { labels: { font: { size: 9 }, boxWidth: 10 } },
+        tooltip: { backgroundColor: '#0a1520', borderColor: CYAN, borderWidth: 1 }
+      },
+      scales: {
+        x: { grid: { display: false }, ticks: { font: { size: 9 } } },
+        y: { grid: { color: 'rgba(0,212,255,0.06)' }, ticks: { font: { size: 9 } }, beginAtZero: true }
+      }
+    }
+  });
+
+  // REV DONUT
+  new Chart(document.getElementById('revDonut'), {
+    type: 'doughnut',
+    data: {
+      labels: ['Rev Sourced', 'Personal Rev', 'Outbound Rev'],
+      datasets: [{
+        data: [33500, 11500, 64500],
+        backgroundColor: ['rgba(0,212,255,0.7)', 'rgba(255,107,26,0.7)', 'rgba(168,85,247,0.7)'],
+        borderColor: '#050a0f',
+        borderWidth: 2,
+        hoverOffset: 6
+      }]
+    },
+    options: {
+      cutout: '60%',
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: '#0a1520',
+          borderColor: CYAN,
+          borderWidth: 1,
+          callbacks: { label: ctx => ` $${ctx.raw.toLocaleString()}` }
+        }
+      }
+    }
+  });
+
+  // RATES CHART FEB
+  new Chart(document.getElementById('ratesChart'), {
+    type: 'radar',
+    data: {
+      labels: ['Show Rate', 'Close Rate', '% to Goal', '% to EOM', 'Demos/Day Pace'],
+      datasets: [{
+        label: 'Feb 2026',
+        data: [81.5, 13.6, 55, 71, 64],
+        fill: true,
+        backgroundColor: 'rgba(0,212,255,0.12)',
+        borderColor: CYAN,
+        borderWidth: 2,
+        pointBackgroundColor: CYAN,
+        pointRadius: 4,
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        r: {
+          beginAtZero: true, max: 100,
+          grid: { color: 'rgba(0,212,255,0.1)' },
+          pointLabels: { font: { size: 9, family: "'Share Tech Mono'" }, color: '#4a7a9b' },
+          ticks: { display: false }
+        }
+      }
+    }
+  });
+
+  // JAN DAILY
+  const janCtx = document.getElementById('janDailyChart').getContext('2d');
+  const janCallsGrad = janCtx.createLinearGradient(0, 0, 0, 200);
+  janCallsGrad.addColorStop(0, 'rgba(0,212,255,0.4)');
+  janCallsGrad.addColorStop(1, 'rgba(0,212,255,0.01)');
+
+  new Chart(janCtx, {
+    type: 'line',
+    data: {
+      labels: DATA.jan.daily.dates,
+      datasets: [{
+        label: 'Calls Made',
+        data: DATA.jan.daily.calls,
+        fill: true,
+        backgroundColor: janCallsGrad,
+        borderColor: CYAN,
+        borderWidth: 2,
+        tension: 0.4,
+        pointRadius: 3,
+        pointBackgroundColor: CYAN,
+        yAxisID: 'y'
+      }, {
+        label: 'Demos Booked',
+        data: DATA.jan.daily.demos,
+        fill: false,
+        borderColor: ORANGE,
+        borderWidth: 2,
+        tension: 0.4,
+        pointRadius: 4,
+        pointBackgroundColor: ORANGE,
+        yAxisID: 'y1'
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: { labels: { font: { size: 9 }, boxWidth: 10 } },
+        tooltip: { backgroundColor: '#0a1520', borderColor: CYAN, borderWidth: 1 }
+      },
+      scales: {
+        x: { grid: { display: false }, ticks: { font: { size: 8 }, maxRotation: 45 } },
+        y: { position: 'left', grid: { color: 'rgba(0,212,255,0.06)' }, ticks: { font: { size: 9 } }, beginAtZero: true },
+        y1: { position: 'right', grid: { drawOnChartArea: false }, ticks: { font: { size: 9 }, stepSize: 1 }, beginAtZero: true }
+      }
+    }
+  });
+
+  // JAN CALLS CHART
+  new Chart(document.getElementById('janCallsChart'), {
+    type: 'bar',
+    data: {
+      labels: DATA.jan.daily.dates,
+      datasets: [{
+        label: 'Calls',
+        data: DATA.jan.daily.calls,
+        backgroundColor: 'rgba(0,212,255,0.4)',
+        borderColor: CYAN,
+        borderWidth: 1,
+        borderRadius: 2,
+        yAxisID: 'y'
+      }, {
+        label: 'Demos',
+        data: DATA.jan.daily.demos,
+        backgroundColor: 'rgba(255,214,0,0.7)',
+        borderColor: YELLOW,
+        borderWidth: 1,
+        borderRadius: 2,
+        type: 'line',
+        tension: 0.4,
+        fill: false,
+        pointRadius: 4,
+        yAxisID: 'y1'
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { labels: { font: { size: 9 }, boxWidth: 10 } }, tooltip: { backgroundColor: '#0a1520', borderColor: CYAN, borderWidth: 1 } },
+      scales: {
+        x: { grid: { display: false }, ticks: { font: { size: 8 }, maxRotation: 45 } },
+        y: { position: 'left', grid: { color: 'rgba(0,212,255,0.06)' }, ticks: { font: { size: 9 } }, beginAtZero: true },
+        y1: { position: 'right', grid: { drawOnChartArea: false }, ticks: { font: { size: 9 }, stepSize: 1 }, beginAtZero: true }
+      }
+    }
+  });
+
+  // JAN WEEKLY
+  new Chart(document.getElementById('janWeeklyChart'), {
+    type: 'bar',
+    data: {
+      labels: ['Wk 1 (Jan 5-9)', 'Wk 2 (Jan 12-16)', 'Wk 3 (Jan 19-23)', 'Wk 4 (Jan 26)'],
+      datasets: [{
+        label: 'Demos Booked',
+        data: [11, 17, 17, 6],
+        backgroundColor: [
+          'rgba(0,212,255,0.6)',
+          'rgba(168,85,247,0.6)',
+          'rgba(0,255,136,0.6)',
+          'rgba(255,107,26,0.6)'
+        ],
+        borderColor: [CYAN, PURPLE, GREEN, ORANGE],
+        borderWidth: 1,
+        borderRadius: 3,
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false }, tooltip: { backgroundColor: '#0a1520', borderColor: CYAN, borderWidth: 1 } },
+      scales: {
+        x: { grid: { display: false }, ticks: { font: { size: 9 } } },
+        y: { grid: { color: 'rgba(0,212,255,0.06)' }, ticks: { font: { size: 9 }, stepSize: 2 }, beginAtZero: true }
+      }
+    }
+  });
+
+  // JAN RATES RADAR
+  new Chart(document.getElementById('janRatesChart'), {
+    type: 'radar',
+    data: {
+      labels: ['Show Rate', 'Close Rate', '% to Goal', 'Calls/Day', 'Demos/Day'],
+      datasets: [{
+        label: 'Jan 2026',
+        data: [72.5, 8, 62, 100, 80],
+        fill: true,
+        backgroundColor: 'rgba(0,255,136,0.12)',
+        borderColor: GREEN,
+        borderWidth: 2,
+        pointBackgroundColor: GREEN,
+        pointRadius: 4,
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        r: {
+          beginAtZero: true, max: 100,
+          grid: { color: 'rgba(0,212,255,0.1)' },
+          pointLabels: { font: { size: 9, family: "'Share Tech Mono'" }, color: '#4a7a9b' },
+          ticks: { display: false }
+        }
+      }
+    }
+  });
+
+  // ALL TIME CHART
+  const atCtx = document.getElementById('allTimeChart').getContext('2d');
+  const atGrad = atCtx.createLinearGradient(0, 0, 0, 300);
+  atGrad.addColorStop(0, 'rgba(0,255,136,0.4)');
+  atGrad.addColorStop(1, 'rgba(0,255,136,0.01)');
+
+  new Chart(atCtx, {
+    type: 'line',
+    data: {
+      labels: DATA.alltime.months,
+      datasets: [{
+        label: 'Revenue',
+        data: DATA.alltime.revenue,
+        fill: true,
+        backgroundColor: atGrad,
+        borderColor: GREEN,
+        borderWidth: 3,
+        tension: 0.4,
+        pointRadius: 6,
+        pointBackgroundColor: GREEN,
+        pointBorderColor: '#050a0f',
+        pointBorderWidth: 2,
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: '#0a1520',
+          borderColor: GREEN,
+          borderWidth: 1,
+          callbacks: { label: ctx => ` $${ctx.raw.toLocaleString()}` }
+        }
+      },
+      scales: {
+        x: { grid: { display: false }, ticks: { font: { size: 11 } } },
+        y: {
+          grid: { color: 'rgba(0,212,255,0.06)' },
+          ticks: {
+            font: { size: 9 },
+            callback: v => `$${(v/1000).toFixed(0)}K`
+          },
+          beginAtZero: true
+        }
+      }
+    }
+  });
+
+  // DEMOS TREND
+  new Chart(document.getElementById('demosTrendChart'), {
+    type: 'bar',
+    data: {
+      labels: DATA.alltime.months,
+      datasets: [{
+        label: 'Demos Booked',
+        data: DATA.alltime.demos,
+        backgroundColor: ['rgba(0,212,255,0.5)','rgba(0,212,255,0.7)','rgba(0,212,255,0.45)'],
+        borderColor: CYAN,
+        borderWidth: 1,
+        borderRadius: 4,
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false }, tooltip: { backgroundColor: '#0a1520', borderColor: CYAN, borderWidth: 1 } },
+      scales: {
+        x: { grid: { display: false }, ticks: { font: { size: 9 } } },
+        y: { grid: { color: 'rgba(0,212,255,0.06)' }, ticks: { font: { size: 9 }, stepSize: 10 }, beginAtZero: true }
+      }
+    }
+  });
+
+  // SHOW RATE TREND
+  new Chart(document.getElementById('showRateTrend'), {
+    type: 'line',
+    data: {
+      labels: DATA.alltime.months,
+      datasets: [{
+        label: 'Show Rate %',
+        data: [75, 72.5, 81.5],
+        fill: false,
+        borderColor: YELLOW,
+        borderWidth: 2,
+        tension: 0.4,
+        pointRadius: 6,
+        pointBackgroundColor: YELLOW,
+        pointBorderColor: '#050a0f',
+        pointBorderWidth: 2,
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: { backgroundColor: '#0a1520', borderColor: YELLOW, borderWidth: 1, callbacks: { label: ctx => ` ${ctx.raw}%` } }
+      },
+      scales: {
+        x: { grid: { display: false }, ticks: { font: { size: 9 } } },
+        y: { grid: { color: 'rgba(0,212,255,0.06)' }, ticks: { font: { size: 9 }, callback: v => v+'%' }, min: 60, max: 100 }
+      }
+    }
+  });
+
+  // ANNUAL GOAL
+  new Chart(document.getElementById('annualGoalChart'), {
+    type: 'bar',
+    data: {
+      labels: ['Jan','Feb','Mar (Proj)','Apr (Proj)','Q2 Avg (Proj)','Annual Proj'],
+      datasets: [{
+        label: 'Actual',
+        data: [88600, 33500, null, null, null, null],
+        backgroundColor: 'rgba(0,255,136,0.6)',
+        borderColor: GREEN,
+        borderWidth: 1,
+        borderRadius: 2,
+      }, {
+        label: 'Projected',
+        data: [null, null, 70000, 75000, 78000, null],
+        backgroundColor: 'rgba(0,212,255,0.3)',
+        borderColor: CYAN,
+        borderWidth: 1,
+        borderRadius: 2,
+        borderDash: [4,4],
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { labels: { font: { size: 9 }, boxWidth: 10 } },
+        tooltip: {
+          backgroundColor: '#0a1520',
+          borderColor: CYAN,
+          borderWidth: 1,
+          callbacks: { label: ctx => ctx.raw ? ` $${ctx.raw.toLocaleString()}` : '' }
+        }
+      },
+      scales: {
+        x: { grid: { display: false }, ticks: { font: { size: 8 } } },
+        y: { grid: { color: 'rgba(0,212,255,0.06)' }, ticks: { font: { size: 9 }, callback: v => `$${(v/1000).toFixed(0)}K` }, beginAtZero: true }
+      }
+    }
+  });
+}
+
+// ─────────────────────────────────────────────
+// TAB SWITCHING
+// ─────────────────────────────────────────────
+function switchMonth(month) {
+  document.querySelectorAll('.tab').forEach((t,i) => {
+    t.classList.toggle('active', ['feb','jan','alltime'][i] === month);
+  });
+  document.querySelectorAll('.month-panel').forEach(p => {
+    p.classList.remove('active');
+  });
+  document.getElementById(`panel-${month}`).classList.add('active');
+}
+
+// ─────────────────────────────────────────────
+// DATE & TICKER
+// ─────────────────────────────────────────────
+function updateDate() {
+  const now = new Date();
+  const opts = { weekday:'short', year:'numeric', month:'short', day:'numeric' };
+  document.getElementById('currentDate').textContent = now.toLocaleDateString('en-US', opts).toUpperCase();
+}
+
+function buildTicker() {
+  const items = [
+    ['DEMOS BOOKED (FEB MTD)', '27'],
+    ['REVENUE SOURCED (FEB MTD)', '$33,500'],
+    ['SHOW RATE (FEB)', '81.5%'],
+    ['CLOSE RATE (FEB)', '13.6%'],
+    ['% TO GOAL (FEB)', '55%'],
+    ['JAN TOTAL REV', '$88,600'],
+    ['JAN CALLS MADE', '612'],
+    ['JAN DEMOS BOOKED', '51'],
+    ['ALL TIME REV', '$392,900'],
+    ['AVG REV/MONTH', '$130,967'],
+  ];
+
+  const doubled = [...items, ...items];
+  const el = document.getElementById('tickerInner');
+  el.innerHTML = doubled.map(([k,v]) =>
+    `<span class="ticker-item">${k}<span>${v}</span></span>`
+  ).join('');
+}
+
+// ─────────────────────────────────────────────
+// INIT
+// ─────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', () => {
+  updateDate();
+  buildTicker();
+  buildCharts();
+});
+</script>
+</body>
+</html>
