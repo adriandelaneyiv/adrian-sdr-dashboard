@@ -66,6 +66,7 @@ const SDR_DATA = {
   goals: {
     monthlyRev: 60000,
     monthlyDemos: 49,
+    monthlyShows: 40,
     annualRev: 720000
   }
 
